@@ -1,0 +1,66 @@
+---
+title: "web scrapping, fechas, texto"
+author: "Fernando Velasco"
+date: "25/12/2014"
+output: html_document
+---
+
+En este ejercicio se descargará informacion bursatil de una pagina web, para darle el formato adecuado dentro de un data frame. La pagina desde la que se bajara la informacion es [esta](http://goo.gl/yD2Bwb)
+
+Descargamos la informacion de la web:
+
+```{r}
+library (XML)
+tables <- readHTMLTable("http://goo.gl/yD2Bwb")
+```
+
+Un vistazo rapido nos mostraria los datos descargados. Se obviara por no sobrecargar el ejercicio, pero de las dos tablas leidas, la primera corresponde al valor global en el dia, mientras que la segunda son las lecturas valor por valor. Se estudiara solo esta, pues parece la mas conveniente para el objetivo del ejercicio.
+
+```{r}
+# funcion definida para evitar la estructura de factor que se lee por defecto.
+nombres <-function (x){
+  levels(x)[as.integer(x)]
+}
+# los nombres se toman de la primera columna, que es la que contiene la informacion
+# que nos interesa
+names (tables[[2]]) <- unlist (lapply (tables[[2]][1,], nombres))
+# para las demas, se leeran los datos en forma de string, eliminando las comas para una 
+# posterior transformacion a numerico.
+df <- as.data.frame (lapply (lapply (tables[[2]][2:dim (tables[[2]])[1],], nombres), gsub, pattern=",", replacement=".") , stringsAsFactors = FALSE)
+```
+
+Una vez tenemos el data frame, aplicamos los tipos adecuados a cada variable
+
+```{r, warning=FALSE}
+# vamos a eliminar la variable "X.", puesto que es una lectura vacia.
+df$X. <- NULL
+# los numericos, como numericos, y el porcentaje tambien, para lo que se elimina
+# el signo "%".
+df [, 2:10] <-as.data.frame (lapply (lapply (df [, 2:11],gsub, pattern="%", replacement=""), as.numeric))
+# para las fechas se ha de hacer distincion de los dos tipos, considerando las 18:00
+# como hora de cierre de los mercados (en realidad seria antes, pero considrearemos esta 
+# cota)
+fechas <- function (fecha){
+  if (is.na (as.POSIXct (fecha, format="%H:%M"))){
+    # formato "1/2/2015"
+    fecha1 <- paste (fecha, "18:00", sep =" ")
+  } 
+  else {
+    # formato "12:05"
+    fecha1 <- paste (format (Sys.Date(), "%d/%m/%Y"), fecha, sep=" ") 
+  }
+  return (fecha1)
+}
+
+df <- transform (df,
+                 Hora.. = as.POSIXct(unlist (lapply (Hora.., fechas)), format="%d/%m/%Y %H:%M"))
+
+```
+
+Y obtenemos el data frame pedido. Nótense sus clases.
+
+```{r}
+class (df)
+str(df)
+
+```

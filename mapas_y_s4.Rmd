@@ -1,0 +1,52 @@
+---
+title: "Clases S4 y mapas"
+author: "Fernando Velasco"
+date: "22/12/2014"
+output: html_document
+---
+
+El objetivo de este trabajo es obtener shapefiles de provincias españolas y datos de poblacion para representarlos graficamente.
+
+Para ello se han descargado los mismos desde [esta pagina](http://servicios2.marm.es/sia/visualizacion/descargas/mapas.jsp) No se han descargado directamente mediante download.file por no aparecer explicitamente la url de cada descarga en la pagina.
+
+Se han considerado los datos de "Poblacion por provincia" siguientes: "Shapefile de la capa" (shp) y "Datos Alfanumericos" (excel) y se han almacenado en el directorio
+"./dat/poblacion_provincias" desde el working directory.
+
+Nota importante: aunque resulte contraproducente por la reproducibilidad, se ha eliminado la fila 6 del excel (que estaba en blanco) para poder permitir la lectura de los datos del mismo.
+
+
+```{r, message=FALSE, warning=FALSE}
+# Lectura de los datos
+library (xlsx)
+library (rgdal)
+excel <- read.xlsx ("./dat/poblacion_provincias/Provincia-23122014.xls", 1, startRow = 6, header = TRUE, as.data.frame=TRUE)
+ogr <- readOGR(dsn = "dat/poblacion_provincias", "Provincias")
+```
+
+Podemos hacer una pequeña exploracion de los datos para ver las variables:
+
+```{r}
+names (ogr)
+names (excel)
+```
+
+Una vez leidos los datos, procedemos a juntarlos:
+
+```{r}
+temp <- merge (ogr, excel, by.x="COD_PROV", by.y="Código.de.provincia")
+```
+
+Tenemos ambas estructuras juntas
+
+```{r}
+names (temp)
+```
+
+Vamos a representarlos graficamente, incluyendo el dato de poblacion y coloreando:
+
+```{r, warning=FALSE}
+plot(temp, col = temp$Población.del.municipio.por.Provincia..hab.)
+invisible(text(getSpPPolygonsLabptSlots(temp), labels=as.character(temp$Población.del.municipio.por.Provincia..hab.), cex=0.4))
+
+```
+

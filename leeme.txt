@@ -1,0 +1,17 @@
+Hola,
+
+Antes de empezar con los ejercicios, unas consideraciones previas:
+En primer lugar, es posible que algún fichero de problemas al leerse, puesto que quizás haya que adecuar los path a los directorios de la máquina en que se ejecuten.
+En segundo lugar, acerca de la bibliografía empleada, básicamente ha sido stackoverflow con ayudas sobre ciertos usos de funciones, a preguntas como "Variables not shown dplyr". Una ayuda un poco más extensa para el caso del paquete de R en github: http://r-pkgs.had.co.nz/intro.html y siguientes.
+
+Ejercicio por ejercicio, como dice en los enunciados, no me han resultado fáciles, y posiblemente haya algún error o aspecto mejorable. Agradecería que, en caso de encontrar estos fallos, me comunicaras qué aspecto es el que podría arreglarse.
+
+He de destacar también que no tengo la máquina virtual del curso, porque mi ordenador no es suficientemente potente para soportarla. Todas mis instalaciones son sobre mi linux, y a la hora de leer muchos datos, una máquina mucho más pequeña da más problemas. Por ese motivo he tratado de usar dataset más pequeños (de comunidades autónomas en lugar del nacional completo, etc).
+
+Para el ejercicio del paquete de R, se ha incluido un fichero ejercicio_extra_paquete_R.txt en el que se explican brevemente los procedimientos para la instalación y la localización del repositorio github.
+
+Un saludo,
+Fernando.
+
+
+

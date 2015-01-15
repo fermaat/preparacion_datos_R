@@ -1,0 +1,72 @@
+---
+title: "rhadoop"
+author: "Fernando Velasco"
+date: "27/12/2014"
+output: html_document
+---
+
+En este ejercicio se tratara de emplear Hadoop para tabular ciertas variables empleando la tecnica map-reduce.
+
+Vamos a continuar con la idea del ejercicio anterior y diseñaremos un map que imponga una clave (sexo, estudios) y un valor que sera una lista (explicado con codigo mas abajo). El reducer, por su parte, dada la clave, computara la media. 
+
+
+Lectura de datos:
+
+```{r, message=FALSE}
+library (rmr2)
+setwd("~/data/sesion_201412")
+# debido a limitaciones de mi maquina, he tenido que trabajar con el autonomico en vez del completo, pero el funcionamiento modulo paths seria el mismo
+path <- "./dat/MicrodatosCP_NV_per_bloque1.txt" #introducir el nombre del fichero completo en caso de haberlo descargado
+library (MicroDatosEs)
+censo <-as.data.frame (censo2010 (path, columns = c("sexo", "edad", "esreal", "factor"), summary=FALSE))
+# fichero reducido a las primeras 100000 lineas del anterior
+file = "rhadoopcenso.csv"
+write.table(censo[1:100000,], file = file, col.names = F, row.names = F, sep = "\t")
+#depende del path en el que este el fichero
+order <- "~/data/hadoop-2.6.0/bin/hadoop fs -put ~/data/sesion_201412/rhadoopcenso.csv"
+#ponemos el input en el hdfs
+system(order)
+```
+
+Mapper:
+
+```{r}
+media_edad.map <- function (v, censo){
+  # añadimos una columna con el producto de factor de elevacion por la edad
+  censo[,5] = as.numeric (as.character (censo[,1])) * as.numeric (censo[,2])
+  # por comodidad
+  colnames (censo) <- c("factor", "edad", "sexo", "estudios", "producto")
+  # separamos censo por las variables de las que queremos informacion
+  tmp <- split(censo, list(censo$sexo, censo$estudios))
+  # el resultado es una lista para cada clave con todos los valores deseados
+  keyval (names (tmp), tmp)
+  }
+```
+
+Reducer:
+
+```{r}
+media_edad.reduce <- function (key, value){
+  # unimos por columnaslos datos que vienen del mapper
+  tmp <- do.call(rbind, value)
+  # y se suman por llave (es la media teniendo en cuenta el factor de elevacion)
+  keyval (key, sum (as.numeric (tmp$producto), na.rm=TRUE) / sum (as.numeric (tmp$factor), na.rm=TRUE))
+  }
+```
+
+Invocamos el mapreduce para el computo del resultado:
+
+```{r}
+salida <- "salida.csv"
+# from.dfs empleado para leer del file system
+resultado <- from.dfs (
+  mapreduce (
+    input = "rhadoopcenso.csv", 
+    input.format = make.input.format("csv", sep = "\t"), 
+    output = salida, output.format = make.output.format("csv", sep = "\t"), 
+    map = media_edad.map, 
+    reduce = media_edad.reduce),
+  format= "csv")
+
+resultado
+```

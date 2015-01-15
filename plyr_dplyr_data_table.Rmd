@@ -1,0 +1,119 @@
+---
+title: "plyr, dplyr y data.table"
+author: "Fernando Velasco"
+date: "26/12/2014"
+output: html_document
+---
+
+
+El objetivo del ejercicio es estudiar el comportamiento de los paquetes plyr, dplyr y data.table al trabajar con datos. Para ello se trabajara con los datos descargables de [esta pagina](http://goo.gl/guhG1M)
+
+Debido a las limitaciones de mi maquina, he descargado el "fichero por CC AA entre 01 y 04", y lo he localizado en "./dat/MicrodatosCP_NV_per_bloque1.txt". A efectos de reproducibilidad, he eliminado los download.file y unzip para agilizar las ejecuciones, pero se adjunta comentada la descarga del fichero nacional completo y su descompresión por si se desea ejecutar asi.
+
+```{r, message=FALSE}
+setwd("~/data/sesion_201412")
+# download.file (url="ftp://www.ine.es/temas/censopv/cen11/Microdatos_personas_nacional.zip", destfile="./dat/Microdatos_nacional.zip")
+# unzip (zipfile ="./dat/Microdatos_nacional.zip", exdir="./dat")
+path <- "./dat/MicrodatosCP_NV_per_bloque1.txt" #introducir el nombre del fichero completo en caso de haberlo descargado
+library (MicroDatosEs)
+censo <-as.data.frame (censo2010 (path, columns = c("sexo", "edad", "esreal", "factor"), summary=FALSE))
+
+# para evitar problemas con el display, los niveles de estudios
+levels (censo$esreal)
+# seran numerados. Se mostraran dos tablas con las equivalencias para facilitar su lectura.
+levels (censo$esreal) <- seq (1:length (levels (censo$esreal)))
+```
+
+Como puede comprobarse, el contenido del fichero no se ha cargado entero, nuevamente por razones de tamaño. Se ha limitado a las variables a estudiar: sexo, edad, nivel de estudios realizados, tipo de estudios y relación con la actividad actual. Una informacion mas completa de los mismos puede encontrarse en [este fichero](ftp://www.ine.es/temas/censopv/cen11/Personas%20detallado_WEB.xls) En el estudio vamos a tratar de computar la media de edad por sexo y nivel de estudios.
+
+Vamos a calcular el tiempo de cada paquete en hacer las operaciones al tiempo que las efectuamos, para compararlo al final.
+
+Nótese que la variable "factor", correspondiente al factor de elevacion de la muestra se ha tenido en cuenta para el computo de la media (Media (v) = sum (v*facto)/sum (factor))
+
+
+```{r, message=FALSE}
+library(plyr)
+# asi lo añadiriamos al data frame
+tiempo.agregado.plyr <- system.time(censo <- ddply(censo, c("sexo", "esreal"), transform, 
+   edad_estudios = sum (edad * factor, na.rm=TRUE) / sum (factor, na.rm=TRUE )))
+
+# esto nos mostraria los valores separados por ambos factores
+tiempo.muestra.plyr <- system.time (
+  muestra <- ddply(censo, c("sexo", "esreal"), summarise, edad_estudios = 
+                     sum (edad * factor, na.rm=TRUE) / sum (factor, na.rm=TRUE)))
+
+muestra
+```
+
+De manera equivalente, con dplyr
+
+```{r, message=FALSE}
+# eliminamos la variable anterior para evitar equivocos:
+censo$edad_estudios <- NULL
+library(dplyr)
+# asi lo añadiriamos al data frame
+tiempo.agregado.dplyr <- system.time(
+  censo <- censo %>%
+  group_by(sexo, esreal) %>%
+  mutate(edad_estudios = sum (edad * factor, na.rm=TRUE) / sum (factor, na.rm=TRUE)))
+
+# para evitar problemas de tamaños
+options(dplyr.width = Inf)
+# esto nos mostraria los valores separados por ambos factores y por ejemplo, ordenado por las medias de edad
+tiempo.muestra.dplyr <- system.time (
+  muestra <- censo %>%
+    group_by(sexo, esreal) %>%
+    summarise(edad_estudios=sum (edad * factor, na.rm=TRUE) / sum (factor, na.rm=TRUE))%>%
+    # desagrupamos para ver el orden completo
+    ungroup %>%
+    arrange(edad_estudios))
+
+muestra
+
+```
+
+Y por ultimo, con data.table
+
+```{r, message=FALSE}
+# releemos para evitar equivocos:
+setwd("~/data/sesion_201412")
+censo <-as.data.frame (censo2010 (path, columns = c("sexo", "edad", "esreal", "factor"), summary=FALSE))
+# para evitar problemas con el display, los niveles de estudios
+levels (censo$esreal)
+# seran numerados. Se mostraran dos tablas con las equivalencias para facilitar su lectura.
+levels (censo$esreal) <- seq (1:length (levels (censo$esreal)))
+# hacemos una lectura de la variable como data table
+library (data.table)
+censo.table <- as.data.table (censo)
+
+# asi lo añadiriamos al data table
+tiempo.agregado.table <- system.time(censo.table <- censo.table[, edad_estudios := sum (edad * factor, na.rm=TRUE) / sum (factor, na.rm=TRUE), by = c("sexo","esreal")])
+
+# esto nos mostraria los valores separados por ambos factores y por ejemplo, ordenado por las medias de edad
+setkey(censo.table, edad_estudios)
+tiempo.muestra.table <- system.time (
+muestra <- censo.table[, list(edad_estudios=sum (edad * factor, na.rm=TRUE) / sum (factor, na.rm=TRUE)), by = c("sexo", "esreal")])
+
+muestra
+
+```
+
+Ahora veamos los tiempos en el agregado:
+
+```{r}
+tiempo.agregado.plyr
+tiempo.agregado.dplyr
+tiempo.agregado.table
+```
+
+Y en la muestra.
+
+```{r}
+tiempo.muestra.plyr
+tiempo.muestra.dplyr
+tiempo.muestra.table
+
+```
+
+
+Como puede verse, dplyr y data.table son mucho mas rapidos que plyr, y data.table ligeramente mas que dplyr en esta muestra. Mi opinion personal es que me quedaria con los mas rapidos sin duda, y particularmente con dplyr, por su notacion de pipes, que me ha resultado especialmente atractiva. Sin embargo, data.table parece quizas algo mas completo con esa ordenacion por claves, asi que entiendo que su utilidad dependera tambien del caso a tratar.

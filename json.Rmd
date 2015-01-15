@@ -1,0 +1,60 @@
+---
+title: "json"
+author: "Fernando Velasco"
+date: "25/12/2014"
+output: html_document
+---
+
+En este ejercicio se mostrará la lectura de datos en Json (y una pequeña historia de los mismos) desde una API online.
+
+Se ha elegido la API de [data.gov](http://www.data.gov/), que es una de las mas usuales. He tratado de no repetir con la de worldbank por intentar aprender un poco mas de las distintas APIs disponibles.
+
+Se ha elegido un dataset temporal de desastres naturales en Estados Unidos, y concretamente un sampleado menor (DisasterDeclarationsSummaries) que sera interesante para evitar problemas de memoria. Esto significa que serán datos de entre 1953 y 1967. Se excluiran los de 1968 por no tener con seguridad todos los datos de ese año (el dataset esta "cortado" por ahi)
+
+Procedemos con la lectura de datos:
+```{r, warning=FALSE}
+jotason <- readLines ("http://www.fema.gov/api/open/v1/DisasterDeclarationsSummaries")
+library(rjson)
+desastres <- fromJSON (jotason)
+```
+
+Un vistazo rapido a los nombres nos permite identificar donde estan nuestros datos:
+
+```{r}
+names (desastres)
+names (desastres$DisasterDeclarationsSummaries[[1]])
+class (desastres$DisasterDeclarationsSummaries)
+```
+
+Con lo que ya podemos convertir esa lista de datos a un data table, por ejemplo:
+
+```{r}
+library(data.table)
+dt <- rbindlist(desastres$DisasterDeclarationsSummaries, fill=TRUE)
+```
+
+Podemos estudiar, por ejemplo, cual es el tipo de desastre que mas se ha repetido a lo largo de los años (repetido=se ha dado al menos una vez cada año). Para ello, vamos a completar un poco nuestra tabla (sin olvidarnos de eliminar los datos de 1968)
+
+```{r}
+fecha <- function (desastre){
+  return (format (as.Date (desastre$declarationDate), "%Y"))
+}
+dt$fecha <- fecha (dt)
+dt$tipo <- as.factor (dt$incidentType)
+dt.limpio <- dt[dt$fecha < 1968]
+```
+
+Vamos a mostrarlo graficamente:
+
+```{r, echo=FALSE}
+
+library (ggplot2)
+
+ggplot(dt.limpio, aes(fecha, tipo))+
+  geom_point()
+```
+
+Este ploteo rapido nos dice, por ejemplo, que los mas repetidos son las inundaciones, huracanes y tornados.
+
+
+

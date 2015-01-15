@@ -1,0 +1,15 @@
+Hola,
+
+Este es el fichero de texto sobre el paquete de R. Ahora que los he subido a github no tiene demasiado sentido, porque ya debes conocer la url, pero igualmente, el paquete se encuentra en https://github.com/fermaat/dspackage2812 
+
+Para su instalacion es suficiente cargar devtools en libreria y pedir desde github el paquete nuevo:
+
+
+> library (devtools)
+> install_github ("fermaat/dspackage2812")
+
+
+Se trata de un paquete muy simple, con dos funciones: el producto escalar euclideo de dos vectores y una suma por columnas empleando dplyr (esto era para ver como se instanciaban otros paquetes desde los paquetes nuevos)
+
+Un saludo.
+
