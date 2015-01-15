@@ -30,7 +30,13 @@ Con lo que ya podemos convertir esa lista de datos a un data table, por ejemplo:
 
 ```{r}
 library(data.table)
-dt <- rbindlist(desastres$DisasterDeclarationsSummaries, fill=TRUE)
+# en condiciones normales seria
+# dt <- rbindlist(desastres$DisasterDeclarationsSummaries, fill=TRUE)
+# pero tiene valores nulos, con lo que primero hay que convertir esos nulos en NAs:
+library (plyr)
+dt <- as.data.table (rbind.fill(lapply(desastres$DisasterDeclarationsSummaries, function(f) {
+    as.data.frame(Filter(Negate(is.null), f))
+})))
 ```
 
 Podemos estudiar, por ejemplo, cual es el tipo de desastre que mas se ha repetido a lo largo de los años (repetido=se ha dado al menos una vez cada año). Para ello, vamos a completar un poco nuestra tabla (sin olvidarnos de eliminar los datos de 1968)

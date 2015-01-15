@@ -16,6 +16,7 @@ Nota importante: aunque resulte contraproducente por la reproducibilidad, se ha 
 
 
 ```{r, message=FALSE, warning=FALSE}
+setwd ("~/data/sesion_201412")
 # Lectura de los datos
 library (xlsx)
 library (rgdal)
